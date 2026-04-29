@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trama Daily - Planejamento de Demandas</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Boxicons for Icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Chart.js for Dashboard Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ExcelJS for Preserving Styles -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- SVG Filter for Fluid Gooey Effect -->
+    <svg style="visibility: hidden; position: absolute;" width="0" height="0" xmlns="http://www.w3.org/2000/svg" version="1.1">
+        <defs>
+            <filter id="gooey">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" id="svg-blur" />
+                <feColorMatrix in="blur" mode="matrix" values="
+                        1 0 0 0 0  
+                        0 1 0 0 0  
+                        0 0 1 0 0  
+                        0 0 0 25 -10" result="gooey-matrix" id="svg-matrix" />
+                <feBlend in="SourceGraphic" in2="gooey-matrix" operator="atop" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo-icon"><i class='bx bxl-sketch'></i></div>
+                <span class="logo-text">Trama Daily</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <span class="nav-label">MENU</span>
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class='bx bx-grid-alt'></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="tasks">
+                    <i class='bx bx-task'></i>
+                    <span>Tarefas</span>
+                    <span class="badge">12+</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="clients">
+                    <i class='bx bx-building'></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="team">
+                    <i class='bx bx-group'></i>
+                    <span>Equipe</span>
+                </a>
+                <a href="#" class="nav-item tab-analytics">
+                    <i class='bx bx-bar-chart-alt-2'></i>
+                    <span>Analytics</span>
+                </a>
+
+                <div class="nav-divider"></div>
+                <span class="nav-label">GERAL</span>
+                <a href="#" class="nav-item">
+                    <i class='bx bx-cog'></i>
+                    <span>Configurações</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class='bx bx-log-out'></i>
+                    <span>Sair</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-promo">
+                <div class="promo-content">
+                    <h4>Exportar Dados</h4>
+                    <p>Baixe as métricas da semana em XLSX</p>
+                    <button class="btn btn-download" onclick="exportToExcel()">Exportar <i class='bx bx-download'></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" style="position: relative; z-index: 1;">
+            <!-- Global Fluid Background -->
+            <div class="artboard-wrapper" id="artboard-wrapper">
+                <div class="artboard" id="artboard">
+                    <div class="blob main-blob"></div>
+                    <div class="blob interactive-blob" id="cursor-blob"></div>
+                </div>
+            </div>
+            
+            <!-- Header -->
+            <header class="header">
+                <div class="search-bar">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="searchInput" placeholder="Buscar tarefa, cliente ou designer... (⌘ F)" />
+                </div>
+                <!-- Controls -->
+                <div class="header-controls">
+                    <button class="btn-icon"><i class='bx bx-envelope'></i></button>
+                    <button class="btn-icon"><i class='bx bx-bell'></i><span class="notification-dot"></span></button>
+                    <div class="user-profile">
+                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=025a4e&color=fff" alt="User Avatar" class="avatar">
+                        <div class="user-info">
+                            <span class="user-name">Administrador</span>
+                            <span class="user-email">admin@trama.com</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="dashboard-view" class="view-section active">
+                <div class="view-header">
+                    <div>
+                        <h1>Dashboard Daily</h1>
+                        <p>Acompanhe, priorize e conquiste as entregas com facilidade.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" onclick="loadSampleData()">Carregar Exemplo</button>
+                        <button class="btn btn-primary" onclick="openTaskModal()"><i class='bx bx-plus'></i> Nova Tarefa</button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-header">
+                            <span>Total de Demandas</span>
+                            <i class='bx bx-up-arrow-alt icon-up'></i>
+                        </div>
+                        <h2 id="stat-total">0</h2>
+                        <span class="stat-footer"><span class="badge-growth"><i class='bx bxs-up-arrow'></i> 5</span> Atualizadas hoje</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Concluídas</span>
+                            <i class='bx bx-check-circle icon-neutral'></i>
+                        </div>
+                        <h2 id="stat-completed">0</h2>
+                        <span class="stat-footer"><span class="badge-growth success"><i class='bx bxs-up-arrow'></i> 2</span> Desde ontem</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Em Andamento</span>
+                            <i class='bx bx-loader-circle icon-neutral'></i>
+                        </div>
+                        <h2 id="stat-running">0</h2>
+                        <span class="stat-footer"><span class="badge-growth success"><i class='bx bxs-up-arrow'></i> 1</span> Em produção</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span>Pendentes</span>
+                            <i class='bx bx-time icon-neutral'></i>
+                        </div>
+                        <h2 id="stat-pending">0</h2>
+                        <span class="stat-footer alert-text">Aguardando definição</span>
+                    </div>
+                </div>
+
+                <!-- Charts and Lists Layout -->
+                <div class="dashboard-grid">
+                    
+                    <!-- Chart: Demandas por Cliente -->
+                    <div class="dash-card col-span-2">
+                        <h3>Demandas por Cliente</h3>
+                        <div class="chart-container">
+                            <canvas id="clientChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Progress chart / Status -->
+                    <div class="dash-card">
+                        <h3>Progresso Geral</h3>
+                        <div class="chart-container chart-pie">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                        <div class="chart-legend-custom">
+                            <span class="legend-item"><span class="dot dot-completed"></span> Concluído</span>
+                            <span class="legend-item"><span class="dot dot-running"></span> Em Andamento</span>
+                            <span class="legend-item"><span class="dot dot-pending"></span> Pendente</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart: Demandas por Pessoa -->
+                    <div class="dash-card col-span-2">
+                        <h3>Carga por Designer/Atendimento</h3>
+                        <div class="chart-container">
+                            <canvas id="designerChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Team Collaboration Preview -->
+                    <div class="dash-card team-preview">
+                        <div class="card-title-row">
+                            <h3>Equipe em Ação</h3>
+                            <button class="btn btn-sm btn-outline">+ Add Membro</button>
+                        </div>
+                        <div class="team-list" id="team-preview-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Tasks View -->
+            <section id="tasks-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>Gestão de Tarefas</h1>
+                        <p>Visualize e gerencie todas as demandas da equipe.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" style="color: #0b5c47; border-color: #0b5c47; background: white;" onclick="showCompletedTasks()">
+                            <i class='bx bx-check-double'></i> Demandas Concluídas
+                        </button>
+                        <button class="btn btn-primary" onclick="openTaskModal()"><i class='bx bx-plus'></i> Nova Tarefa</button>
+                    </div>
+                </div>
+
+                <div class="dash-card table-card">
+                    <div class="table-actions">
+                        <div class="table-filters" style="flex-wrap: wrap; display: flex; gap: 12px; align-items: center;">
+                            <input type="text" id="filterStatus" list="statusList" oninput="renderTable()" placeholder="Todos os Status" class="filter-input-typed" />
+                            <datalist id="statusList">
+                                <option value="A FAZER">
+                                <option value="EM ANDAMENTO">
+                                <option value="AGUARDANDO APROVAÇÃO">
+                                <option value="CONCLUÍDO">
+                                <option value="SEM DEFINIÇÃO DO CLIENTE">
+                            </datalist>
+
+                            <div class="filter-wrap">
+                                <input type="text" id="filterClient" list="clientsList" oninput="renderTable()" placeholder="Todos os Clientes" class="filter-input-typed" />
+                                <datalist id="clientsList"></datalist>
+                                <button class="btn-filter-add" onclick="promptAddNew('Cliente')" title="Adicionar Novo Cliente"><i class='bx bx-plus'></i></button>
+                                <button class="btn-filter-minus" onclick="promptRemove('Cliente')" title="Remover Cliente"><i class='bx bx-minus'></i></button>
+                            </div>
+
+                            <div class="filter-wrap">
+                                <input type="text" id="filterDesigner" list="designersList" oninput="renderTable()" placeholder="Todos os Designers" class="filter-input-typed" />
+                                <datalist id="designersList"></datalist>
+                                <button class="btn-filter-add" onclick="promptAddNew('Designer')" title="Adicionar Novo Designer"><i class='bx bx-plus'></i></button>
+                                <button class="btn-filter-minus" onclick="promptRemove('Designer')" title="Remover Designer"><i class='bx bx-minus'></i></button>
+                            </div>
+
+                            <div class="filter-wrap">
+                                <input type="text" id="filterAgent" list="agentsList" oninput="renderTable()" placeholder="Todo Atendimento" class="filter-input-typed" />
+                                <datalist id="agentsList"></datalist>
+                                <button class="btn-filter-add" onclick="promptAddNew('Atendimento')" title="Adicionar Novo Atendimento"><i class='bx bx-plus'></i></button>
+                                <button class="btn-filter-minus" onclick="promptRemove('Atendimento')" title="Remover Atendimento"><i class='bx bx-minus'></i></button>
+                            </div>
+                            
+                            <input type="text" id="filterPriority" list="priorityList" oninput="renderTable()" placeholder="Todas as Prioridades" class="filter-input-typed" />
+                            <datalist id="priorityList">
+                                <option value="Normal">
+                                <option value="Alta">
+                                <option value="Baixa">
+                                <option value="Urgente">
+                            </datalist>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Peça / Assunto</th>
+                                    <th>Criação / Design</th>
+                                    <th>Atendimento</th>
+                                    <th>Prazo</th>
+                                    <th>Prioridade</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="taskTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients View -->
+            <section id="clients-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>Espaço do Cliente</h1>
+                        <p>Acompanhe a linha do tempo e o status de cada projeto por cliente.</p>
+                    </div>
+                </div>
+
+                <div class="clients-grid" id="clientsGridBody">
+                    <!-- Populated dynamically with client cards -->
+                </div>
+                <div id="clientTimelineArea" style="display:none; margin-top: 32px;">
+                    <div class="timeline-area-content">
+                        <div class="timeline-area-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+                            <h3 id="timelineClientTitle" style="margin:0;">Cliente: XYZ</h3>
+                            <div>
+                                <select id="clientTaskSelect" class="filter-input-typed" onchange="renderClientTimeline(this.value)">
+                                    <option value="">Selecione uma tarefa...</option>
+                                </select>
+                                <button class="btn btn-outline btn-sm" onclick="closeClientTimeline()" style="margin-left: 8px;">Voltar</button>
+                            </div>
+                        </div>
+                        <div id="timelineContainer">
+                            <!-- Timeline injected here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Team View -->
+            <section id="team-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>Equipe e Colaboradores</h1>
+                        <p>Gerencie os membros da equipe de design e atendimento.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="openTeamModal()"><i class='bx bx-plus'></i> Adicionar Membro</button>
+                    </div>
+                </div>
+
+                <div class="dash-card table-card">
+                    <div class="table-actions">
+                        <div class="filter-group">
+                            <select id="filterTeamRole" onchange="renderTeamTable()">
+                                <option value="ALL">Todas as Equipes</option>
+                                <option value="Designer">Equipe de Designer</option>
+                                <option value="Atendimento">Equipe de Atendimento</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="team-grid" id="teamGridBody">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Nova Tarefa / Edição -->
+    <div id="taskModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nova Demanda</h2>
+                <button class="btn-icon" onclick="closeTaskModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form id="taskForm" onsubmit="saveTask(event)">
+                <input type="hidden" id="taskId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cliente *</label>
+                        <select id="taskClient" required onchange="handleSelectChange(this, 'Cliente')">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Atendimento</label>
+                        <select id="taskAgent" onchange="handleSelectChange(this, 'Atendimento')">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tipo de Entrega/Peça *</label>
+                        <select id="taskType" required onchange="handleSelectChange(this, 'Peça')">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assunto/Campanha</label>
+                        <input type="text" id="taskCampaign" placeholder="Ex: Natal 2025" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Criação (SIM/NÃO)</label>
+                        <select id="taskCreation">
+                            <option value="SIM">SIM</option>
+                            <option value="NÃO">NÃO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Designer Responsável</label>
+                        <select id="taskDesigner" onchange="handleSelectChange(this, 'Designer')">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prazo</label>
+                        <input type="date" id="taskDeadline" />
+                    </div>
+                    <div class="form-group">
+                        <label>Prioridade</label>
+                        <select id="taskPriority">
+                            <option value="Normal">Normal</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Baixa">Baixa</option>
+                            <option value="Urgente">Urgente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status da Tarefa *</label>
+                    <select id="taskStatus" required>
+                        <option value="A FAZER">A FAZER</option>
+                        <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+                        <option value="AGUARDANDO APROVAÇÃO">AGUARDANDO APROVAÇÃO</option>
+                        <option value="CONCLUÍDO">CONCLUÍDO</option>
+                        <option value="SEM DEFINIÇÃO DO CLIENTE">SEM DEFINIÇÃO DO CLIENTE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ajustes Necessários? (Opcional)</label>
+                    <input type="text" id="taskAdjustments" placeholder="Descreva ajustes se houver..." />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeTaskModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Demanda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar Equipe -->
+    <div id="teamModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Novo Membro</h2>
+                <button class="btn-icon" onclick="closeTeamModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form onsubmit="saveTeamMember(event)">
+                <div class="form-group">
+                    <label>Nome do Colaborador *</label>
+                    <input type="text" id="teamMemberName" required placeholder="Ex: João Silva" />
+                </div>
+                <div class="form-group">
+                    <label>Equipe (Função) *</label>
+                    <select id="teamMemberRole" required>
+                        <option value="Designer">Designer</option>
+                        <option value="Atendimento">Atendimento</option>
+                    </select>
+                </div>
+                <div class="modal-footer" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeTeamModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Items Modal -->
+    <div id="addModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="addModalTitle">Adicionar Item</h2>
+                <button class="btn-icon" onclick="closeAddModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form onsubmit="saveNewItem(event)">
+                <div class="form-group">
+                    <input type="text" id="newItemName" required placeholder="Digite o nome..." />
+                </div>
+                <div class="modal-footer" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Items Modal -->
+    <div id="manageModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 id="manageModalTitle">Gerenciar Itens</h2>
+                <button class="btn-icon" onclick="closeManageModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                Cancele um item clicando no 'X' abaixo. (Atenção: se o item já estiver alocado em uma tabela ativa, ele será preservado).
+            </p>
+            <div class="manage-list" id="manageListContainer">
+                <!-- Items rendered here -->
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button class="btn btn-primary" type="button" onclick="closeManageModal()">Concluído</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step Details Modal -->
+    <div id="stepDetailsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="stepModalTitle">Detalhes da Etapa</h2>
+                <button class="btn-icon" onclick="closeStepDetailsModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Responsável</label>
+                <input type="text" id="stepAssignee" class="filter-input-typed" placeholder="Nome do Responsável">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Prioridade</label>
+                    <select id="stepPriority" class="filter-input-typed">
+                        <option value="Normal">Normal</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Baixa">Baixa</option>
+                        <option value="Urgente">Urgente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Prazo / Deadline</label>
+                    <input type="date" id="stepDeadline" class="filter-input-typed">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="stepStatus" class="filter-input-typed">
+                    <option value="A FAZER">A FAZER</option>
+                    <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+                    <option value="AGUARDANDO APROVAÇÃO">AGUARDANDO APROVAÇÃO</option>
+                    <option value="CONCLUÍDO">CONCLUÍDO</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Instruções / Detalhes</label>
+                <textarea id="stepInstructions" class="filter-input-typed" rows="4" placeholder="Descreva as instruções desta etapa..."></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button type="button" class="btn btn-outline" onclick="closeStepDetailsModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="closeStepDetailsModal()">Salvar Etapa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adjustment Step Modal -->
+    <div id="adjustmentModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Criar Ajuste</h2>
+                <button class="btn-icon" onclick="closeAdjustmentModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Responsável pelo Ajuste</label>
+                <input type="text" id="adjustmentAssignee" class="filter-input-typed" placeholder="Nome do Responsável">
+            </div>
+            <div class="form-group">
+                <label>Instruções do Ajuste</label>
+                <textarea id="adjustmentInstructions" class="filter-input-typed" rows="3" placeholder="O que precisa ser ajustado?"></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button type="button" class="btn btn-outline" onclick="closeAdjustmentModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="closeAdjustmentModal()">Criar Ajuste</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Ação realizada com sucesso!</div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
